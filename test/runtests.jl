@@ -1,10 +1,10 @@
 using SRQ
 using Test
 
-@testset "Composites" begin
-    include("Composites.jl")
+@testset "Test Composites module" begin
+    include("composites.jl")
 end
 
-@testset "Cutoffs" begin
-    include("Cutoffs.jl")
+@testset "Test Cutoffs module" begin
+    include("cutoffs.jl")
 end

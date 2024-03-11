@@ -18,16 +18,16 @@ export ICD10,
        cut,
        cat_johan
 
-include("Diagnoses.jl")
+include("diagnoses.jl")
 using .Diagnoses
 
-include("Measures.jl")
+include("measures.jl")
 using .Measures
 
-include("Composites.jl")
+include("composites.jl")
 using .Composites
 
-include("Cutoffs.jl")
+include("cutoffs.jl")
 using .Cutoffs
 
 end
