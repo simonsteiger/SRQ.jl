@@ -10,7 +10,7 @@ Typically used for recoding `diagnoskod_1` to a coarser categorization.
 # Example
 
 ```julia-repl
-julia> x = ["M05.8L", "M07.0"]
+julia> diagnoskod_1 = ["M05.8L", "M07.0"]
 julia> [haskey(ICD10, x) ? ICD10[x] : x for x in diagnoskod_1]
 > ["RA", "PsA"]
 ```

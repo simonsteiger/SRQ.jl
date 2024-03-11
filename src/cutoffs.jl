@@ -17,7 +17,7 @@ julia> cut(x)
 ```
 """
 function cut(c::AbstractDAS28)
-    value = evaluate(c)
+    value = score(c)
     if c isa DAS28CRP
         value < 2.5 ? "Remission" :
         value ≤ 2.9 ? "Low"       :
@@ -31,14 +31,23 @@ function cut(c::AbstractDAS28)
     end
 end
 
-"Convert an SDAI score into a categorical variable."
+"""
+    cut(c::SDAI)
+
+Convert an SDAI score into a categorical variable.
+
+```julia-repl
+julia> x = SDAI(4, 5, 12, 4, 23)
+julia> cut(x)
+> "High"
+```
+"""
 function cut(c::SDAI)
-    value = evaluate(c)
+    value = score(c)
     value <  3.3 ? "Remission" :
     value ≤ 11.0 ? "Low"       :
     value ≤ 26.0 ? "Moderate"  :
-                   "High"
-    
+                   "High" 
 end
 
 end
