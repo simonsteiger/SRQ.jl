@@ -22,21 +22,14 @@ function cut(c::T) where T<:AbstractDAS28
     end
 end
 
-"""
-This dictionary stores the cutoffs for the categories proposed by Johan in Study 1 of my PhD.
-
-Lower are compared with ≤ "less-or-equal", moderate are inclusive of both limits, i.e. `lower ≤ x ≤ upper` and high values are ≥ "greater-or-equal".
-
-For ESR values, add 10 for female sex and age > 60, respectively, i.e., females > 60 get +20.
-"""
-cat_johan = Dict(
-    "t28"      =>   [1, 4],
-    "s28"      =>   [1, 4],
-    "pgh"      => [20, 40],
-    "pain"     => [20, 40],
-    "fatigue"  => [20, 40],
-    "crp"      => [10, 29],
-    "esr"      => [10, 39],
-)
+"Convert an SDAI score into a categorical variable."
+function cut(c::SDAI)
+    value = evaluate(c)
+    value <  3.3 ? "Remission" :
+    value ≤ 11.0 ? "Low"       :
+    value ≤ 26.0 ? "Moderate"  :
+                   "High"
+    
+end
 
 end
