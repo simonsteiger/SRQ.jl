@@ -1,6 +1,10 @@
 using SRQ
 using Test
 
-@testset "SRQ.jl" begin
-    # Write your tests here.
+@testset "Composites" begin
+    include("Composites.jl")
+end
+
+@testset "Cutoffs" begin
+    include("Cutoffs.jl")
 end
