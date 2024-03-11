@@ -7,7 +7,7 @@ export AbstractComposite,
     DAS28ESR,
     SDAI,
     weigh,
-    evaluate,
+    score,
     decompose,
     collapse
 
@@ -133,7 +133,7 @@ weigh(c::AbstractComposite, v::Symbol) = value(getproperty(c, v))
 
 
 """
-    evaluate(c::T)
+    score(c::T)
 
 Calculate the value of an `AbstractComposite`.
    
@@ -143,18 +143,18 @@ Calculate the value of an `AbstractComposite`.
 # Example
 
 ```julia-repl
-julia> evaluate(DAS28ESR(4, 2, 64, 44))
+julia> score(DAS28ESR(4, 2, 64, 44))
 > 5.061
 ```
 """
-function evaluate(c::T; digits=3) where {T<:AbstractComposite}
+function score(c::T; digits=3) where {T<:AbstractComposite}
     value = mapreduce(x -> weigh(c, x), +, fieldnames(T))
     value += intercept(c)
     return round(value, digits=digits)
 end
 
 # Get denominator for concrete DAS28 type
-_denom(c::T; digits=3) where {T<:AbstractComposite} = c isa DAS28CRP ? evaluate(c, digits=digits) - intercept(c) : evaluate(c, digits=digits)
+_denom(c::T; digits=3) where {T<:AbstractComposite} = c isa DAS28CRP ? score(c, digits=digits) - intercept(c) : score(c, digits=digits)
 
 # Summarise subcomponents of a concrete DAS28 type into subjective and objective dimensions
 _dimsum(d) = d[:t28] + d[:pga], d[:s28] + d[:inf]

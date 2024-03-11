@@ -5,18 +5,17 @@ export ICD10,
        Objective,
        Subjective,
        Constant,
-       value,
        AbstractComposite,
-       DAS28CRP, 
-       DAS28ESR, 
        AbstractDAS28,
+       DAS28CRP, 
+       DAS28ESR,
        SDAI,
+       value,
        weigh,
-       evaluate,
+       score,
        decompose,
        collapse,
-       cut,
-       cat_johan
+       cut
 
 include("diagnoses.jl")
 using .Diagnoses

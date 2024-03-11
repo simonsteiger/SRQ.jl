@@ -1,13 +1,22 @@
 module Cutoffs
 
-export cut,
-       cat_johan
+export cut
 
 using ..Composites
 
 # TODO use composite and add conditional evaluation if value is missing
-"Convert a DAS28 score into a categorical variable."
-function cut(c::T) where T<:AbstractDAS28
+"""
+    cut(c::AbstractDAS28)
+
+Convert a DAS28 score into a categorical variable.
+
+```julia-repl
+julia> x = DAS28ESR(4, 5, 12, 44)
+julia> cut(x)
+> "Moderate"
+```
+"""
+function cut(c::AbstractDAS28)
     value = evaluate(c)
     if c isa DAS28CRP
         value < 2.5 ? "Remission" :
