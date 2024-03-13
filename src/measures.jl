@@ -27,13 +27,13 @@ x::AbstractMeasure + y::AbstractMeasure = value(x) + value(y)
 # Difference of two AbstractMeasures is subtracting their values
 x::AbstractMeasure - y::AbstractMeasure = value(x) - value(y)
 
-# An AbstractMeasure can be divided by a Number, but not vice versa
-x::AbstractMeasure / y = value(x) / y
+# An AbstractMeasure can be divided by a Real, but not vice versa
+x::AbstractMeasure / y::Real = value(x) / y
 
-# An AbstractMeasure can be multiplied by a Number
-x::AbstractMeasure * y = value(x) * y
+# An AbstractMeasure can be multiplied by a Real
+x::AbstractMeasure * y::Real = value(x) * y
 # Multiplication of AbstractMeasures is commutative
-x * y::AbstractMeasure = y * x
+x::Real * y::AbstractMeasure = y * x
 
 # Methods for log and sqrt
 log(x::AbstractMeasure) = log(value(x))
