@@ -219,7 +219,7 @@ julia> collapse(c; adjust=true)
 function collapse(c::T; adjust=false, digits=3) where {T<:AbstractComposite}
     raw_s, raw_o = _dimsum(c, decompose(c, digits=digits))
     !adjust && return Dict(Pair.(["obj_raw", "sub_raw"], [raw_s, raw_o]))
-    max_s, max_o = _dimsum.(decompose.(map(x -> T(x...), _setmax(c))))
+    max_s, max_o = _dimsum.(Ref(c), decompose.(map(x -> T(x...), _setmax(c))))
     adj_s, adj_o = [r / m for (r, m) in zip([raw_s, raw_o], [max_s[1], max_o[2]])]
     return Dict(Pair.(["obj_adj", "sub_adj"], [adj_s, adj_o]))
 end
