@@ -2,8 +2,8 @@ module SRQ
 
 export ICD10,
        AbstractMeasure,
-       Objective,
-       Subjective,
+       ObjectiveMeasure,
+       SubjectiveMeasure,
        Constant,
        AbstractComposite,
        AbstractDAS28,
