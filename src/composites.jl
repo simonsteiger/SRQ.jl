@@ -13,6 +13,9 @@ export AbstractComposite,
 
 using ..Measures
 
+# TODO might want to add a test dict instead of copying the code for each struct, checking if, e.g., joints are between 0 and 28
+# TODO define length method for AbstractComposite would allow broadcasting
+
 abstract type AbstractComposite end
 abstract type AbstractDAS28 <: AbstractComposite end
 
@@ -29,16 +32,15 @@ julia> DAS28CRP(4, 5, 12, 44)
 ```
 """
 struct DAS28CRP <: AbstractDAS28
-    t28::Subjective
-    s28::Objective
-    pga::Subjective
-    inf::Objective
-    # consider forcing all of these to be kwargs to avoid unintentional errors
+    t28
+    s28
+    pga
+    inf
     function DAS28CRP(t28, s28, pga, inf)
-        foreach(jc -> Base.isbetween(0, jc, 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
-        Base.isbetween(0, pga, 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
-        inf >= 0 || throw(DomainError(inf, "CRP must be positive."))
-        return new(Subjective(t28), Objective(s28), Subjective(pga), Objective(inf))
+        foreach(jc -> Base.isbetween(0, value(jc), 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
+        Base.isbetween(0, value(pga), 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
+        value(inf) >= 0 || throw(DomainError(inf, "ESR must be positive."))
+        return new(t28, s28, pga, inf)
     end
 end
 
@@ -55,16 +57,15 @@ julia> DAS28ESR(4, 5, 12, 44)
 ```
 """
 struct DAS28ESR <: AbstractDAS28
-    t28::Subjective
-    s28::Objective
-    pga::Subjective
-    inf::Objective
-    # consider forcing all of these to be kwargs to avoid unintentional errors
+    t28
+    s28
+    pga
+    inf
     function DAS28ESR(t28, s28, pga, inf)
-        foreach(jc -> Base.isbetween(0, jc, 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
-        Base.isbetween(0, pga, 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
-        inf >= 0 || throw(DomainError(inf, "ESR must be positive."))
-        return new(Subjective(t28), Objective(s28), Subjective(pga), Objective(inf))
+        foreach(jc -> Base.isbetween(0, value(jc), 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
+        Base.isbetween(0, value(pga), 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
+        value(inf) >= 0 || throw(DomainError(inf, "ESR must be positive."))
+        return new(t28, s28, pga, inf)
     end
 end
 
@@ -82,17 +83,17 @@ julia> SDAI(4, 5, 12, 5, 44)
 ```
 """
 struct SDAI <: AbstractComposite
-    t28::Subjective
-    s28::Objective
-    pga::Subjective
-    ega::Objective
-    crp::Objective
+    t28
+    s28
+    pga
+    ega
+    crp
     function SDAI(t28, s28, pga, ega, crp)
-        foreach(jc -> Base.isbetween(0, jc, 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
-        Base.isbetween(0, pga, 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
+        foreach(jc -> Base.isbetween(0, value(jc), 28) || throw(DomainError(jc, "joint counts must be between 0 and 28.")), [t28, s28])
+        Base.isbetween(0, value(pga), 100) || throw(DomainError(pga, "VAS global must be between 0 and 100."))
         # TODO add check for ega
-        crp >= 0 || throw(DomainError(crp, "CRP must be positive."))
-        return new(Subjective(t28), Objective(s28), Subjective(pga), Objective(ega), Objective(crp))
+        value(crp) >= 0 || throw(DomainError(crp, "CRP must be positive."))
+        return new(t28, s28, pga, ega, crp)
     end
 end
 
@@ -154,17 +155,22 @@ function score(c::T; digits=3) where {T<:AbstractComposite}
 end
 
 # Get denominator for concrete DAS28 type
-_denom(c::T; digits=3) where {T<:AbstractComposite} = c isa DAS28CRP ? score(c, digits=digits) - intercept(c) : score(c, digits=digits)
+_denom(c::AbstractComposite; digits=3) = c isa DAS28CRP ? score(c, digits=digits) - intercept(c) : score(c, digits=digits)
 
 # Summarise subcomponents of a concrete DAS28 type into subjective and objective dimensions
-_dimsum(d) = d[:t28] + d[:pga], d[:s28] + d[:inf]
-# TODO needs to make type inference if further Composites arrive
-# This may be possible by storing the decomposition in a parametric struct?
+function _dimsum(c::AbstractComposite, d)
+    nms = fieldnames(typeof(c))
+    types = typeof.([getproperty(c, x) for x in nms])
+    any((<:).(types, AbstractMeasure)) || throw("All fields of AbstractComposite `c` must be AbstractMeasures.")
+    obj = nms[types .== ObjectiveMeasure]
+    sub = nms[types .== SubjectiveMeasure]
+    return sum([d[x] for x in sub]), sum([d[x] for x in obj])
+end
 
 # From a single score, create two scores where for each score one of the dimensions is at its maximum
 # Assumes two dimensions currently, and only implemented for DAS28 anyway
 # TODO extend support to other types – we probably cannot dispatch on AbstractComposite
-_setmax(c::T) where {T<:AbstractComposite} = [28, c.s28, 100, c.inf], [c.t28, 28, c.pga, c isa DAS28CRP ? 1000 : 300]
+_setmax(c::AbstractComposite) = [28, c.s28, 100, c.inf], [c.t28, 28, c.pga, c isa DAS28CRP ? 1000 : 300]
 
 
 """
@@ -211,7 +217,7 @@ julia> collapse(c; adjust=true)
 ```
 """
 function collapse(c::T; adjust=false, digits=3) where {T<:AbstractComposite}
-    raw_s, raw_o = _dimsum(decompose(c, digits=digits))
+    raw_s, raw_o = _dimsum(c, decompose(c, digits=digits))
     !adjust && return Dict(Pair.(["obj_raw", "sub_raw"], [raw_s, raw_o]))
     max_s, max_o = _dimsum.(decompose.(map(x -> T(x...), _setmax(c))))
     adj_s, adj_o = [r / m for (r, m) in zip([raw_s, raw_o], [max_s[1], max_o[2]])]

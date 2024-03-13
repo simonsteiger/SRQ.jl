@@ -1,14 +1,14 @@
 module Measures
 
-export AbstractMeasure, Subjective, Objective, Constant, value
+export AbstractMeasure, SubjectiveMeasure, ObjectiveMeasure, Constant, value
 
 abstract type AbstractMeasure end
 
-struct Subjective <: AbstractMeasure
+struct SubjectiveMeasure <: AbstractMeasure
     value::Real
 end
 
-struct Objective <: AbstractMeasure
+struct ObjectiveMeasure <: AbstractMeasure
     value::Real
 end
 
@@ -19,16 +19,21 @@ end
 import Base: +, -, *, /, sqrt, log, log1p
 
 value(x::AbstractMeasure) = x.value
+value(x) = x
 
-# Basic arithmetic for two AbstractMeasures
+# Addition of two AbstractMeasures is adding their values
 x::AbstractMeasure + y::AbstractMeasure = value(x) + value(y)
-x::AbstractMeasure - y::AbstractMeasure = value(x) - value(y)
-x::AbstractMeasure / y = value(x) / y
-x::AbstractMeasure * y = value(x) * y
-x * y::AbstractMeasure = x * value(y)
 
-# Only AbstractMeasures can be added or subtracted
-# They can only be multiplied or divided by Reals
+# Difference of two AbstractMeasures is subtracting their values
+x::AbstractMeasure - y::AbstractMeasure = value(x) - value(y)
+
+# An AbstractMeasure can be divided by a Number, but not vice versa
+x::AbstractMeasure / y = value(x) / y
+
+# An AbstractMeasure can be multiplied by a Number
+x::AbstractMeasure * y = value(x) * y
+# Multiplication of AbstractMeasures is commutative
+x * y::AbstractMeasure = y * x
 
 # Methods for log and sqrt
 log(x::AbstractMeasure) = log(value(x))
