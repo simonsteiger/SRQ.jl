@@ -2,6 +2,8 @@ module Measures
 
 export AbstractMeasure, SubjectiveMeasure, ObjectiveMeasure, Constant, value
 
+# TODO define length method for AbstractMeasure would allow broadcasting
+
 abstract type AbstractMeasure end
 
 struct SubjectiveMeasure <: AbstractMeasure
