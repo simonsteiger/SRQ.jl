@@ -154,8 +154,8 @@ function score(c::T; digits=3) where {T<:AbstractComposite}
     return round(value, digits=digits)
 end
 
-# Get denominator for concrete DAS28 type
-_denom(c::AbstractComposite; digits=3) = c isa DAS28CRP ? score(c, digits=digits) - intercept(c) : score(c, digits=digits)
+# Get denominator of AbstractComposite
+_denom(c::AbstractComposite; digits=3) = score(c, digits=digits) - intercept(c)
 
 # Summarise subcomponents of a concrete DAS28 type into subjective and objective dimensions
 function _dimsum(c::AbstractComposite, d)
@@ -218,10 +218,10 @@ julia> collapse(c; adjust=true)
 """
 function collapse(c::T; adjust=false, digits=3) where {T<:AbstractComposite}
     raw_s, raw_o = _dimsum(c, decompose(c, digits=digits))
-    !adjust && return Dict(Pair.(["obj_raw", "sub_raw"], [raw_s, raw_o]))
+    !adjust && return Dict(Pair.(["sub_raw", "obj_raw"], [raw_s, raw_o]))
     max_s, max_o = _dimsum.(Ref(c), decompose.(map(x -> T(x...), _setmax(c))))
     adj_s, adj_o = [r / m for (r, m) in zip([raw_s, raw_o], [max_s[1], max_o[2]])]
-    return Dict(Pair.(["obj_adj", "sub_adj"], [adj_s, adj_o]))
+    return Dict(Pair.(["sub_adj", "obj_adj"], [adj_s, adj_o]))
 end
 
 end
