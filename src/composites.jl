@@ -149,8 +149,7 @@ julia> score(DAS28ESR(4, 2, 64, 44))
 ```
 """
 function score(c::T; digits=3) where {T<:AbstractComposite}
-    value = mapreduce(x -> weigh(c, x), +, fieldnames(T))
-    value += intercept(c)
+    value = intercept(c) + mapreduce(x -> weigh(c, x), +, fieldnames(T))
     return round(value, digits=digits)
 end
 

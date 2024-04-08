@@ -10,21 +10,9 @@ end
 
 @testset "Invalid arithmetic on AbstractMeasures" begin
     # Division of two AbstractMeasures is not defined
-    @test try
-        t28 / t28
-    catch error
-        error isa MethodError
-    end
+    @test try t28 / t28 catch error; error isa MethodError end
     # Multiplication of two AbstractMeasures is not defined
-    @test try
-        t28 * t28
-    catch error
-        error isa MethodError
-    end
+    @test try t28 * t28 catch error; error isa MethodError end
     # Division of Real by AbstractMeasure is not defined
-    @test try
-        3 / t28
-    catch error
-        error isa MethodError
-    end
+    @test try 3 / t28 catch error; error isa MethodError end
 end
