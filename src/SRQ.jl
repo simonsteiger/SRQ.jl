@@ -5,8 +5,8 @@ export ICD10,
        ObjectiveMeasure,
        SubjectiveMeasure,
        Constant,
-       AbstractComposite,
-       AbstractDAS28,
+       Composite,
+       DAS28,
        DAS28CRP, 
        DAS28ESR,
        SDAI,
@@ -15,7 +15,7 @@ export ICD10,
        score,
        decompose,
        collapse,
-       cut
+       cutoff
 
 include("diagnoses.jl")
 using .Diagnoses

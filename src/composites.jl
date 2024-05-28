@@ -1,8 +1,8 @@
 module Composites
 
-export AbstractComposite,
+export Composite,
     AbstractMeasure,
-    AbstractDAS28,
+    DAS28,
     DAS28CRP,
     DAS28ESR,
     SDAI,
@@ -14,10 +14,22 @@ export AbstractComposite,
 using ..Measures
 
 # TODO might want to add a test dict instead of copying the code for each struct, checking if, e.g., joints are between 0 and 28
-# TODO define length method for AbstractComposite would allow broadcasting
+# TODO define length method for Composite would allow broadcasting
 
-abstract type AbstractComposite end
-abstract type AbstractDAS28 <: AbstractComposite end
+abstract type Composite end
+abstract type DAS28 <: Composite end # This would be a subtype of ContinuousComposite then
+abstract type CompositeStyle end
+struct IsContinuous <: CompositeStyle end
+struct IsBoolean <: CompositeStyle end
+
+# Default composite is continuous
+CompositeStyle(::Type) = IsContinuous()
+
+# Some composites are Boolean
+# CompositeStyle(::Type{<:BooleanRemission}) = IsBoolean()
+
+# score() should throw an error on IsBoolean styles and reference cut()
+
 
 """
     DAS28CRP(t28, s28, pga, inf)
@@ -31,7 +43,7 @@ julia> DAS28CRP(4, 5, 12, 44)
 > DAS28CRP(4.0, 5.0, 12.0, 44.0)
 ```
 """
-struct DAS28CRP <: AbstractDAS28
+struct DAS28CRP <: DAS28 # TODO fields are Any right now, poor for performance!
     t28
     s28
     pga
@@ -56,7 +68,7 @@ julia> DAS28ESR(4, 5, 12, 44)
 > DAS28ESR(4.0, 5.0, 12.0, 44.0)
 ```
 """
-struct DAS28ESR <: AbstractDAS28
+struct DAS28ESR <: DAS28 # TODO fields are Any right now, poor for performance!
     t28
     s28
     pga
@@ -82,7 +94,7 @@ julia> SDAI(4, 5, 12, 5, 44)
 > SDAI(4.0, 5.0, 12.0, 5.0, 44.0)
 ```
 """
-struct SDAI <: AbstractComposite
+struct SDAI <: Composite # TODO fields are Any right now, poor for performance!
     t28
     s28
     pga
@@ -97,15 +109,15 @@ struct SDAI <: AbstractComposite
     end
 end
 
-components(c::T) where {T<:AbstractComposite} = getproperty.(Ref(c), fieldnames(T))
+components(c::T) where {T<:Composite} = getproperty.(Ref(c), fieldnames(T))
 
-Base.show(io::IO, z::T) where {T<:AbstractComposite} = print(io, "$T$(Pair.(fieldnames(T), components(z)))")
+Base.show(io::IO, z::T) where {T<:Composite} = print(io, "$T$(Pair.(fieldnames(T), components(z)))")
 
 "Return intercept of a specific score."
 intercept(c::DAS28CRP) = 0.96
 
 "If the specified score has no intercept, return 0."
-intercept(c::AbstractComposite) = 0.0
+intercept(c::Composite) = 0.0
 
 
 """
@@ -120,7 +132,9 @@ julia> weigh(DAS28CRP(4, 5, 12, 44), :pga)
 > 0.168
 ```
 """
-function weigh(c::AbstractDAS28, v::Symbol)
+weigh(c::T, v) where {T} = weigh(CompositeStyle(T), c, v)
+
+function weigh(::IsContinuous, c::DAS28, v::Symbol)
     x = getproperty(c, v)
     v == :t28 ? √(x) * 0.56 :
     v == :s28 ? √(x) * 0.28 :
@@ -130,13 +144,15 @@ function weigh(c::AbstractDAS28, v::Symbol)
 end
 
 "If no weight is defined, return the value of the specified property."
-weigh(c::AbstractComposite, v::Symbol) = value(getproperty(c, v))
+weigh(::IsContinuous, c::Composite, v::Symbol) = value(getproperty(c, v))
 
+"Throw an error if a boolean composite is weighed."
+weigh(::IsBoolean, c::Composite, v::Symbol) = error("Boolean composites cannot be weighed.")
 
 """
     score(c::T)
 
-Calculate the value of an `AbstractComposite`.
+Calculate the value of an `Composite`.
    
 > For more detail on the formulas, see the following links:
 > - DAS28: https://www.4s-dawn.com/DAS28/.
@@ -148,19 +164,19 @@ julia> score(DAS28ESR(4, 2, 64, 44))
 > 5.061
 ```
 """
-function score(c::T; digits=3) where {T<:AbstractComposite}
+function score(c::T; digits=3) where {T<:Composite}
     value = intercept(c) + mapreduce(x -> weigh(c, x), +, fieldnames(T))
     return round(value, digits=digits)
 end
 
-# Get denominator of AbstractComposite
-_denom(c::AbstractComposite; digits=3) = score(c, digits=digits) - intercept(c)
+# Get denominator of Composite
+_denom(c::Composite; digits=3) = score(c, digits=digits) - intercept(c)
 
 # Summarise subcomponents of a concrete DAS28 type into subjective and objective dimensions
-function _dimsum(c::AbstractComposite, d)
+function _dimsum(c::Composite, d)
     nms = fieldnames(typeof(c))
     types = typeof.([getproperty(c, x) for x in nms])
-    any((<:).(types, AbstractMeasure)) || throw("All fields of AbstractComposite `c` must be AbstractMeasures.")
+    any((<:).(types, AbstractMeasure)) || throw("All fields of Composite `c` must be AbstractMeasures.")
     obj = nms[types .== ObjectiveMeasure]
     sub = nms[types .== SubjectiveMeasure]
     return sum([d[x] for x in sub]), sum([d[x] for x in obj])
@@ -168,8 +184,11 @@ end
 
 # From a single score, create two scores where for each score one of the dimensions is at its maximum
 # Assumes two dimensions currently, and only implemented for DAS28 anyway
-# TODO extend support to other types – we probably cannot dispatch on AbstractComposite
-_setmax(c::AbstractComposite) = [28, c.s28, 100, c.inf], [c.t28, 28, c.pga, c isa DAS28CRP ? 1000 : 300]
+# Do we want a collapsable and uncollapsable style? See holy trait pattern
+_submax(c::DAS28) = [SubjectiveMeasure(28), c.s28, SubjectiveMeasure(100), c.inf] 
+_objmax(c::DAS28CRP) = [c.t28, ObjectiveMeasure(28), c.pga, ObjectiveMeasure(1000)]
+_objmax(c::DAS28ESR) = [c.t28, ObjectiveMeasure(28), c.pga, ObjectiveMeasure(300)] 
+_setmax(c::Composite) = _submax(c), _objmax(c)
 
 
 """
@@ -188,7 +207,7 @@ julia> decompose(DAS28ESR(4, 12, 44, 2))
   :t28 => 0.351
 ```
 """
-function decompose(c::T; digits=3) where {T<:AbstractComposite}
+function decompose(c::T; digits=3) where {T<:Composite}
     decomp = weigh.(Ref(c), fieldnames(T)) ./ _denom(c, digits=digits)
     return Dict(Pair.(fieldnames(T), decomp))
 end
@@ -215,7 +234,7 @@ julia> collapse(c; adjust=true)
 > (adj_s = 0.494, adj_o = 0.887)
 ```
 """
-function collapse(c::T; adjust=false, digits=3) where {T<:AbstractComposite}
+function collapse(c::T; adjust=false, digits=3) where {T<:Composite}
     raw_s, raw_o = _dimsum(c, decompose(c, digits=digits))
     !adjust && return Dict(Pair.(["sub_raw", "obj_raw"], [raw_s, raw_o]))
     max_s, max_o = _dimsum.(Ref(c), decompose.(map(x -> T(x...), _setmax(c))))
