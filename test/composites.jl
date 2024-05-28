@@ -1,8 +1,8 @@
 @testset "Check type hierarchy" begin
-    @test AbstractDAS28 <: AbstractComposite
-    @test cDAS28ESR isa AbstractDAS28
-    @test cDAS28CRP isa AbstractDAS28
-    @test cSDAI isa AbstractComposite
+    @test DAS28 <: Composite
+    @test cDAS28ESR isa DAS28
+    @test cDAS28CRP isa DAS28
+    @test cSDAI isa Composite
 end
 
 
